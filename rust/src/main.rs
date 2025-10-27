@@ -1,3 +1,6 @@
+mod solutions;
+use crate::solutions::day1::greeting;
+
 fn main() {
-    println!("Hello, world!");
+    greeting("world");
 }
