@@ -1,6 +1,6 @@
 mod solutions;
-use crate::solutions::day1::greeting;
+use crate::solutions::day1;
 
 fn main() {
-    greeting("world");
+    println!("Day 1: {}", day1::result());
 }
