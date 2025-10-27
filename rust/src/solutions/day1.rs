@@ -23,15 +23,7 @@ fn read_input(path: impl AsRef<Path>) -> io::Result<(Vec<i64>, Vec<i64>)> {
 fn compute_result(xs: &mut Vec<i64>, ys: &mut Vec<i64>) -> i64 {
     xs.sort();
     ys.sort();
-    let mut total = 0;
-    for (x, y) in xs.iter().zip(ys) {
-        if x > y {
-            total += *x - *y
-        } else {
-            total += *y - *x
-        };
-    }
-    total
+    xs.iter().zip(ys).map(|(x, y)| (*x - *y).abs()).sum()
 }
 
 pub fn result() -> i64 {
