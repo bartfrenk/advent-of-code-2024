@@ -5,7 +5,7 @@ use std::io::BufRead;
 use std::path::Path;
 use std::vec::Vec;
 
-fn read_input(path: impl AsRef<Path>) -> io::Result<(Vec<i64>, Vec<i64>)> {
+fn read(path: impl AsRef<Path>) -> io::Result<(Vec<i64>, Vec<i64>)> {
     let file = File::open(path)?;
     let mut xs = Vec::new();
     let mut ys = Vec::new();
@@ -21,13 +21,13 @@ fn read_input(path: impl AsRef<Path>) -> io::Result<(Vec<i64>, Vec<i64>)> {
     Ok((xs, ys))
 }
 
-fn compute_part1(xs: &mut Vec<i64>, ys: &mut Vec<i64>) -> i64 {
+fn part1(xs: &mut [i64], ys: &mut [i64]) -> i64 {
     xs.sort();
     ys.sort();
     xs.iter().zip(ys).map(|(x, y)| (*x - *y).abs()).sum()
 }
 
-fn compute_part2(xs: &Vec<i64>, ys: &Vec<i64>) -> i64 {
+fn part2(xs: &[i64], ys: &[i64]) -> i64 {
     let mut counts = HashMap::new();
     for y in ys {
         let count = counts.entry(*y).or_insert(0);
@@ -36,9 +36,11 @@ fn compute_part2(xs: &Vec<i64>, ys: &Vec<i64>) -> i64 {
     xs.iter().map(|x| counts.get(x).unwrap_or(&0) * x).sum()
 }
 
-pub fn result() -> (i64, i64) {
-    let (mut xs, mut ys) = read_input("inputs/day1.txt").unwrap();
-    (compute_part1(&mut xs, &mut ys), compute_part2(&xs, &ys))
+pub fn run() {
+    let (mut xs, mut ys) = read("inputs/day1.txt").unwrap();
+    println!("Day 1");
+    println!("\tPart 1: {}", part1(&mut xs, &mut ys));
+    println!("\tPart 2: {}", part2(&xs, &ys));
 }
 
 #[cfg(test)]
@@ -49,13 +51,13 @@ mod tests {
     fn test_example_part1() {
         let mut xs = vec![3, 4, 2, 1, 3, 3];
         let mut ys = vec![4, 3, 5, 3, 9, 3];
-        assert!(compute_part1(&mut xs, &mut ys) == 11);
+        assert!(part1(&mut xs, &mut ys) == 11);
     }
 
     #[test]
     fn test_example_part2() {
         let xs = vec![3, 4, 2, 1, 3, 3];
         let ys = vec![4, 3, 5, 3, 9, 3];
-        assert!(compute_part2(&xs, &ys) == 31);
+        assert!(part2(&xs, &ys) == 31);
     }
 }
