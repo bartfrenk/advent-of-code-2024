@@ -14,7 +14,6 @@ partial def processLines [ToString α] (stream : IO.FS.Stream) (f : String -> α
     let line ← stream.getLine
     if line.length > 0 then
       let tail ← processLines stream f
-      -- TODO: Issue here where newline keeps the string from being parsed correctly
       let parsed := f line.trim
       let stdout ← IO.getStdout
       stdout.putStrLn line
@@ -22,8 +21,6 @@ partial def processLines [ToString α] (stream : IO.FS.Stream) (f : String -> α
       pure (parsed :: tail)
     else
       pure []
-
-def x := String.instDecidableLtPos
 
 def isNonZero (str : String): Bool := str.length > 0
 
