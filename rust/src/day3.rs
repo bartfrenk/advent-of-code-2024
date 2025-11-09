@@ -1,6 +1,8 @@
 use regex::{Captures, Regex};
+use std::env::args;
 use std::fs::File;
 use std::io;
+use std::process::exit;
 
 fn read<S: io::Read>(stream: &mut S) -> String {
     let mut contents = String::new();
@@ -69,10 +71,15 @@ fn part1(s: &str) -> i64 {
 }
 
 pub fn main() {
-    let mut file = File::open("inputs/day3.txt").unwrap();
-    let contents = read(&mut file);
-    println!("Part1: {}", part1(&contents));
-    println!("Part2: {}", part2(&contents));
+    match args().skip(1).next() {
+        None => exit(1),
+        Some(path) => {
+            let mut file = File::open(&path).unwrap();
+            let contents = read(&mut file);
+            println!("Part1: {}", part1(&contents));
+            println!("Part2: {}", part2(&contents));
+        }
+    }
 }
 
 #[cfg(test)]

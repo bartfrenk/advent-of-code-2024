@@ -1,7 +1,9 @@
 use itertools::Itertools;
+use std::env::args;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
+use std::process::exit;
 
 type Report = Vec<i64>;
 
@@ -58,13 +60,15 @@ fn part2(reports: impl Iterator<Item = Report>) -> usize {
 }
 
 pub fn main() {
-    let path = "inputs/day2.txt";
-
-    let it = read(File::open(path).unwrap());
-    println!("Part 1: {}", part1(it));
-
-    let it = read(File::open(path).unwrap());
-    println!("Part 2: {}", part2(it));
+    match args().skip(1).next() {
+        None => exit(1),
+        Some(path) => {
+            let it = read(File::open(&path).unwrap());
+            println!("Part 1: {}", part1(it));
+            let it = read(File::open(&path).unwrap());
+            println!("Part 2: {}", part2(it));
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::env::args;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
+use std::process::exit;
 use std::vec::Vec;
 
 fn read(path: impl AsRef<Path>) -> io::Result<(Vec<i64>, Vec<i64>)> {
@@ -37,9 +39,14 @@ fn part2(xs: &[i64], ys: &[i64]) -> i64 {
 }
 
 pub fn main() {
-    let (mut xs, mut ys) = read("inputs/day1.txt").unwrap();
-    println!("Part 1: {}", part1(&mut xs, &mut ys));
-    println!("Part 2: {}", part2(&xs, &ys));
+    match args().skip(1).next() {
+        None => exit(1),
+        Some(path) => {
+            let (mut xs, mut ys) = read(&path).unwrap();
+            println!("Part 1: {}", part1(&mut xs, &mut ys));
+            println!("Part 2: {}", part2(&xs, &ys));
+        }
+    }
 }
 
 #[cfg(test)]
