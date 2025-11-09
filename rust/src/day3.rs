@@ -68,12 +68,11 @@ fn part1(s: &str) -> i64 {
         .sum()
 }
 
-pub fn run() {
+pub fn main() {
     let mut file = File::open("inputs/day3.txt").unwrap();
     let contents = read(&mut file);
-    println!("Day 3");
-    println!("\tPart1: {:?}", part1(&contents));
-    println!("\tPart2: {:?}", part2(&contents));
+    println!("Part1: {}", part1(&contents));
+    println!("Part2: {}", part2(&contents));
 }
 
 #[cfg(test)]

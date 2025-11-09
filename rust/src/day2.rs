@@ -60,20 +60,19 @@ fn part2(reports: impl Iterator<Item = Report>) -> usize {
     reports.filter(is_nearly_safe).count()
 }
 
-pub fn run() {
+pub fn main() {
     let path = "inputs/day2.txt";
-    println!("Day 2");
 
     let reports: Vec<Report> = read(File::open(path).unwrap()).collect();
-    println!("\tPart 1: {}", part1(reports.into_iter()));
+    println!("Part 1: {}", part1(reports.into_iter()));
 
     let reports: Vec<Report> = read(File::open(path).unwrap()).collect();
-    println!("\tPart 2: {}", part2(reports.into_iter()));
+    println!("Part 2: {}", part2(reports.into_iter()));
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::solutions::day2::*;
+    use super::*;
 
     #[test]
     fn test_small_example_part1() {

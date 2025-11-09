@@ -36,16 +36,15 @@ fn part2(xs: &[i64], ys: &[i64]) -> i64 {
     xs.iter().map(|x| counts.get(x).unwrap_or(&0) * x).sum()
 }
 
-pub fn run() {
+pub fn main() {
     let (mut xs, mut ys) = read("inputs/day1.txt").unwrap();
-    println!("Day 1");
-    println!("\tPart 1: {}", part1(&mut xs, &mut ys));
-    println!("\tPart 2: {}", part2(&xs, &ys));
+    println!("Part 1: {}", part1(&mut xs, &mut ys));
+    println!("Part 2: {}", part2(&xs, &ys));
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::solutions::day1::*;
+    use super::*;
 
     #[test]
     fn test_example_part1() {
