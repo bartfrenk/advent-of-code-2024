@@ -40,9 +40,6 @@ fn skip_over(i: usize, report: &Report) -> Report {
 }
 
 fn is_nearly_safe(report: &Report) -> bool {
-    if is_safe(report) {
-        return true;
-    }
     for i in 0..report.len() {
         let skipped = skip_over(i, report);
         if is_safe(&skipped) {
@@ -63,11 +60,11 @@ fn part2(reports: impl Iterator<Item = Report>) -> usize {
 pub fn main() {
     let path = "inputs/day2.txt";
 
-    let reports: Vec<Report> = read(File::open(path).unwrap()).collect();
-    println!("Part 1: {}", part1(reports.into_iter()));
+    let it = read(File::open(path).unwrap());
+    println!("Part 1: {}", part1(it));
 
-    let reports: Vec<Report> = read(File::open(path).unwrap()).collect();
-    println!("Part 2: {}", part2(reports.into_iter()));
+    let it = read(File::open(path).unwrap());
+    println!("Part 2: {}", part2(it));
 }
 
 #[cfg(test)]
@@ -89,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_part1_on_input_data() {
-        let reports = read(File::open("inputs/day2.txt").unwrap());
-        assert!(part1(reports) == 390);
+        let it = read(File::open("inputs/day2.txt").unwrap());
+        assert!(part1(it) == 390);
     }
 }
