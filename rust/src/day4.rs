@@ -73,22 +73,24 @@ mod tests {
     #[test]
     fn test_small_example_part1() {
         let board = vec![
-            Vec::from("MMMSXXMASM".as_bytes()),
-            Vec::from("MSAMXMSMSA".as_bytes()),
-            Vec::from("AMXSXMAAMM".as_bytes()),
-            Vec::from("MSAMASMSMX".as_bytes()),
-            Vec::from("XMASAMXAMM".as_bytes()),
-            Vec::from("XXAMMXXAMA".as_bytes()),
-            Vec::from("SMSMSASXSS".as_bytes()),
-            Vec::from("SAXAMASAAA".as_bytes()),
-            Vec::from("MAMMMXMMMM".as_bytes()),
-            Vec::from("MXMXAXMASX".as_bytes()),
+            Vec::from(b"MMMSXXMASM"),
+            Vec::from(b"MSAMXMSMSA"),
+            Vec::from(b"AMXSXMAAMM"),
+            Vec::from(b"MSAMASMSMX"),
+            Vec::from(b"XMASAMXAMM"),
+            Vec::from(b"XXAMMXXAMA"),
+            Vec::from(b"SMSMSASXSS"),
+            Vec::from(b"SAXAMASAAA"),
+            Vec::from(b"MAMMMXMMMM"),
+            Vec::from(b"MXMXAXMASX"),
         ];
-        // for line in board {
-        //     println!("{:?}", line)
-        // }
-        let res = part1(&board, b"XMAS");
+        assert!(part1(&board, b"XMAS") == 18);
+    }
 
-        println!("{}", res);
+    #[test]
+    fn test_part1_on_input_data() {
+        let mut file = File::open("inputs/day4.txt").unwrap();
+        let board = read(&mut file).unwrap();
+        assert_eq!(part1(&board, b"XMAS"), 2335);
     }
 }
