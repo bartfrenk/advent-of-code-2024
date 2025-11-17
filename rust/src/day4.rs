@@ -223,4 +223,11 @@ mod tests {
         let board = Board::read(&mut file).unwrap();
         assert_eq!(part1(&board, b"XMAS"), 2336);
     }
+
+    #[test]
+    fn test_part2_on_input_data() {
+        let mut file = File::open("inputs/day4.txt").unwrap();
+        let board = Board::read(&mut file).unwrap();
+        assert_eq!(part2(&board), 1831);
+    }
 }
