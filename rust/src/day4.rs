@@ -2,6 +2,7 @@ use std::env::args;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, Error};
+use std::ops::Add;
 
 use itertools::iproduct;
 use std::process::exit;
@@ -12,13 +13,21 @@ type Index = i32;
 struct Point(Index, Index);
 
 impl Point {
-    fn add(&mut self, dir: &Point) {
+    fn translate(&mut self, dir: &Point) {
         self.0 = self.0 + dir.0;
         self.1 = self.1 + dir.1;
     }
 
     fn origin(&self) -> bool {
         return self.0 == 0 && self.1 == 0;
+    }
+}
+
+impl Add for Point {
+    type Output = Point;
+
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + other.0, self.1 + other.1)
     }
 }
 
@@ -94,9 +103,46 @@ fn has_word(board: &Board, init: &Point, dir: &Point, word: &[u8]) -> bool {
                 }
             }
         }
-        cursor.add(dir);
+        cursor.translate(dir);
     }
     return true;
+}
+
+struct Ray {
+    current: Point,
+    dir: Point,
+}
+
+impl Ray {
+    fn new(initial: Point, dir: Point) -> Self {
+        Self {
+            current: initial,
+            dir: dir,
+        }
+    }
+}
+
+impl Iterator for Ray {
+    type Item = Point;
+
+    fn next(&mut self) -> Option<Point> {
+        let result = self.current;
+        self.current = self.current + self.dir;
+        Some(result)
+    }
+}
+
+fn has_xmas(board: &Board, point: &Point) -> bool {
+    let w1: Vec<u8> = Ray::new(*point + Point(-1, -1), Point(1, 1))
+        .map_while(|p| board.get(&p))
+        .take(3)
+        .collect();
+    let w2: Vec<u8> = Ray::new(*point + Point(1, -1), Point(-1, 1))
+        .map_while(|p| board.get(&p))
+        .take(3)
+        .collect();
+    return (w1 == "MAS".as_bytes() || w1 == "SAM".as_bytes())
+        && (w2 == "MAS".as_bytes() || w2 == "SAM".as_bytes());
 }
 
 fn part1(board: &Board, word: &[u8]) -> usize {
@@ -112,17 +158,30 @@ fn part1(board: &Board, word: &[u8]) -> usize {
             }
         }
     }
+    return total;
+}
 
+fn part2(board: &Board) -> usize {
+    let mut total = 0;
+    for p in board.positions() {
+        if board.get(&p) == Some(b'A') && has_xmas(&board, &p) {
+            total += 1;
+        }
+    }
     return total;
 }
 
 fn main() {
     match args().nth(1) {
-        None => exit(1),
+        None => {
+            println!("Specify an input file");
+            exit(1);
+        }
         Some(path) => {
             let mut file = File::open(&path).unwrap();
             if let Ok(board) = Board::read(&mut file) {
                 println!("Part1: {}", part1(&board, "XMAS".as_bytes()));
+                println!("Part2: {}", part2(&board));
             }
         }
     }
@@ -131,10 +190,10 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use lazy_static::lazy_static;
 
-    #[test]
-    fn test_small_example_part1() {
-        let board = Board::from(&[
+    lazy_static! {
+        static ref BOARD: Board = Board::from(&[
             b"MMMSXXMASM",
             b"MSAMXMSMSA",
             b"AMXSXMAAMM",
@@ -146,7 +205,16 @@ mod tests {
             b"MAMMMXMMMM",
             b"MXMXAXMASX",
         ]);
-        assert_eq!(part1(&board, b"XMAS"), 18);
+    }
+
+    #[test]
+    fn test_small_example_part1() {
+        assert_eq!(part1(&BOARD, b"XMAS"), 18);
+    }
+
+    #[test]
+    fn test_small_example_part2() {
+        assert_eq!(part2(&BOARD), 9);
     }
 
     #[test]
