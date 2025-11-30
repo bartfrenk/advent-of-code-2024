@@ -98,12 +98,12 @@ struct Board {
     obstacles: HashSet<Point>,
 }
 
-struct IterState<'a> {
+struct WalkState<'a> {
     board: &'a Board,
     guard: Option<Guard>,
 }
 
-impl Iterator for IterState<'_> {
+impl Iterator for WalkState<'_> {
     type Item = Guard;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -138,7 +138,7 @@ impl Board {
     }
 
     fn walk(&self, guard: Option<Guard>) -> impl Iterator<Item = Guard> {
-        return IterState {
+        return WalkState {
             board: self,
             guard: guard,
         };
