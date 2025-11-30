@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::collections::HashSet;
 use std::env::args;
 use std::fs::File;
@@ -197,6 +198,18 @@ fn part1(path: &str) -> usize {
     return visited.len();
 }
 
+fn pred(board: &mut Board, point: Point, guard: Option<Guard>) -> bool {
+    board.obstacles.insert(point);
+    let mut history = HashSet::new();
+    for guard in board.walk(guard) {
+        if history.contains(&guard) {
+            return true;
+        }
+        history.insert(guard);
+    }
+    return false;
+}
+
 fn part2(path: &str) -> usize {
     let mut file = File::open(&path).unwrap();
     let instance = Instance::read(&mut file).unwrap();
@@ -206,20 +219,10 @@ fn part2(path: &str) -> usize {
         visited.insert(guard.pos);
     }
 
-    let mut count = 0;
-    for point in visited {
-        let mut board = instance.board.clone();
-        board.obstacles.insert(point);
-        let mut history = HashSet::new();
-        for guard in board.walk(instance.guard) {
-            if history.contains(&guard) {
-                count += 1;
-                break;
-            }
-            history.insert(guard);
-        }
-    }
-    return count;
+    return visited
+        .par_iter()
+        .filter(|p| pred(&mut instance.board.clone(), **p, instance.guard))
+        .count();
 }
 
 fn main() {
