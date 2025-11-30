@@ -2,16 +2,13 @@ use std::collections::HashSet;
 use std::env::args;
 use std::fs::File;
 use std::io;
-use std::io::{BufRead, Error};
+use std::io::BufRead;
 use std::process::exit;
 
-#[derive(Clone, Copy)]
-enum Pixel {
-    Empty,
-    Wall,
-}
+#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
+struct Point(usize, usize);
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
 enum Dir {
     Up,
     Right,
@@ -19,180 +16,210 @@ enum Dir {
     Left,
 }
 
+use Dir::*;
+
 impl Dir {
-    fn step(&self, pos: &Point) -> Point {
-        match &self {
-            Dir::Up => Point(pos.0 - 1, pos.1),
-            Dir::Right => Point(pos.0, pos.1 + 1),
-            Dir::Down => Point(pos.0 + 1, pos.1),
-            Dir::Left => Point(pos.0, pos.1 - 1),
+    const VALUES: [Dir; 4] = [Up, Right, Down, Left];
+
+    fn parse(c: char) -> Option<Dir> {
+        for dir in Dir::VALUES {
+            if c == char::from(&dir) {
+                return Some(dir);
+            }
+        }
+        return None;
+    }
+
+    fn step(&self, p: &Point) -> Option<Point> {
+        match self {
+            Up => {
+                if p.0 > 0 {
+                    return Some(Point(p.0 - 1, p.1));
+                } else {
+                    return None;
+                }
+            }
+            Right => return Some(Point(p.0, p.1 + 1)),
+            Down => return Some(Point(p.0 + 1, p.1)),
+            Left => {
+                if p.1 > 0 {
+                    return Some(Point(p.0, p.1 - 1));
+                } else {
+                    return None;
+                }
+            }
+        }
+    }
+
+    fn turn(&self) -> Dir {
+        match self {
+            Up => Right,
+            Right => Down,
+            Down => Left,
+            Left => Up,
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct Point(i32, i32);
+impl From<&Dir> for char {
+    fn from(dir: &Dir) -> Self {
+        match dir {
+            Up => return '^',
+            Right => return '>',
+            Left => return '<',
+            Down => return 'V',
+        }
+    }
+}
 
-#[derive(Debug)]
+impl ToString for Dir {
+    fn to_string(&self) -> String {
+        return char::from(self).into();
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
 struct Guard {
     pos: Point,
     dir: Dir,
 }
 
 impl Guard {
-    fn new(i: usize, j: usize, ch: char) -> Result<Guard, String> {
-        let pos = Point(i as i32, j as i32);
-        match ch {
-            '^' => {
-                return Ok(Guard {
-                    pos: pos,
-                    dir: Dir::Up,
-                })
-            }
-            '>' => {
-                return Ok(Guard {
-                    pos: pos,
-                    dir: Dir::Right,
-                })
-            }
-            'v' => {
-                return Ok(Guard {
-                    pos: pos,
-                    dir: Dir::Down,
-                })
-            }
-            '<' => {
-                return Ok(Guard {
-                    pos: pos,
-                    dir: Dir::Left,
-                })
-            }
-            _ => return Err(format!("Invalid direction {}", ch)),
-        }
-    }
-
     fn turn(&mut self) {
-        match self.dir {
-            Dir::Up => self.dir = Dir::Right,
-            Dir::Right => self.dir = Dir::Down,
-            Dir::Down => self.dir = Dir::Left,
-            Dir::Left => self.dir = Dir::Up,
-        }
+        self.dir = self.dir.turn();
     }
 }
 
-struct Board(Vec<Vec<Pixel>>);
+#[derive(Clone)]
+struct Board {
+    height: usize,
+    width: usize,
+    obstacles: HashSet<Point>,
+}
+
+struct IterState<'a> {
+    board: &'a Board,
+    guard: Option<Guard>,
+}
+
+impl Iterator for IterState<'_> {
+    type Item = Guard;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let guard = self.guard;
+        self.board.step(&mut self.guard);
+        return guard;
+    }
+}
 
 impl Board {
-    fn get(&self, point: &Point) -> Option<Pixel> {
-        if point.0 < (self.0.len() as i32)
-            && (point.1 < self.0[point.0 as usize].len() as i32)
-            && point.0 >= 0
-            && point.1 >= 0
-        {
-            return Some(self.0[point.0 as usize][point.1 as usize]);
+    fn step(&self, guard: &mut Option<Guard>) {
+        if let Some(g) = guard {
+            if let Some(p) = g.dir.step(&g.pos) {
+                if !self.contains(&p) {
+                    guard.take();
+                } else {
+                    if self.obstacles.contains(&p) {
+                        g.turn();
+                        self.step(guard);
+                    } else {
+                        g.pos = p;
+                    }
+                }
+            } else {
+                guard.take();
+            }
         }
-        return None;
+    }
+
+    fn contains(&self, p: &Point) -> bool {
+        return p.0 < self.height && p.1 < self.width;
+    }
+
+    fn walk(&self, guard: Option<Guard>) -> impl Iterator<Item = Guard> {
+        return IterState {
+            board: self,
+            guard: guard,
+        };
     }
 }
 
-struct State {
+struct Instance {
     board: Board,
-    guard: Guard,
+    guard: Option<Guard>,
 }
 
-impl State {
-    fn read<S: io::Read>(stream: &mut S) -> Result<State, Error> {
-        fn parse(i: usize, s: &str, guard: &mut Option<Guard>) -> Result<Vec<Pixel>, String> {
-            let mut row = Vec::new();
-            for (j, ch) in s.chars().enumerate() {
-                match ch {
-                    '.' => row.push(Pixel::Empty),
-                    '#' => row.push(Pixel::Wall),
-                    '^' | '>' | 'v' | '<' => {
-                        row.push(Pixel::Empty);
-                        guard.replace(Guard::new(i, j, ch).unwrap());
+impl Instance {
+    fn read<S: io::Read>(stream: &mut S) -> Result<Self, io::Error> {
+        let mut obstacles = HashSet::new();
+        let mut height = 0;
+        let mut width = 0;
+        let mut guard = None;
+        for (i, res) in io::BufReader::new(stream).lines().enumerate() {
+            let line = res?;
+            for (j, c) in line.chars().enumerate() {
+                match c {
+                    '.' => continue,
+                    '#' => {
+                        obstacles.insert(Point(i, j));
                     }
-                    _ => return Err(format!("Unknown character {}", ch)),
+                    _ => {
+                        if let Some(dir) = Dir::parse(c) {
+                            guard.replace(Guard {
+                                pos: Point(i, j),
+                                dir: dir,
+                            });
+                        };
+                    }
                 }
             }
-            return Ok(row);
+            height += 1;
+            width = line.len();
         }
-
-        let mut contents = Vec::new();
-        let mut guard = None;
-        for (i, result) in io::BufReader::new(stream).lines().enumerate() {
-            match result {
-                Err(error) => return Err(error),
-                Ok(line) => contents.push(parse(i, &line, &mut guard).unwrap()),
-            }
-        }
-        return Ok(State {
-            board: Board(contents),
-            guard: guard.unwrap(),
+        return Ok(Instance {
+            board: Board {
+                height: height,
+                width: width,
+                obstacles: obstacles,
+            },
+            guard: guard,
         });
     }
-
-    fn step(&mut self) -> Option<Point> {
-        let point = self.guard.dir.step(&self.guard.pos);
-        match self.board.get(&point) {
-            None => return None,
-            Some(pixel) => match pixel {
-                Pixel::Empty => {
-                    self.guard.pos = point;
-                    return Some(point);
-                }
-                Pixel::Wall => {
-                    self.guard.turn();
-                    return self.step();
-                }
-            },
-        }
-    }
 }
 
-impl ToString for Guard {
-    fn to_string(&self) -> String {
-        match self.dir {
-            Dir::Up => return String::from("^"),
-            Dir::Right => return String::from(">"),
-            Dir::Down => return String::from("v"),
-            Dir::Left => return String::from("<"),
-        }
-    }
-}
-
-impl ToString for Pixel {
-    fn to_string(&self) -> String {
-        match self {
-            Pixel::Empty => return String::from("."),
-            Pixel::Wall => return String::from("#"),
-        }
-    }
-}
-
-fn unwords<I: Iterator<Item = String>>(it: I) -> String {
-    let words: Vec<String> = it.collect();
-    return words.join("\n");
-}
-
-impl ToString for Board {
-    fn to_string(&self) -> String {
-        return unwords(
-            self.0
-                .iter()
-                .map(|row| row.iter().map(|p| p.to_string()).collect::<String>()),
-        );
-    }
-}
-
-fn part1(state: &mut State) -> usize {
-    let mut visited: HashSet<Point> = HashSet::new();
-    visited.insert(state.guard.pos);
-    while let Some(point) = state.step() {
-        visited.insert(point);
+fn part1(path: &str) -> usize {
+    let mut file = File::open(&path).unwrap();
+    let instance = Instance::read(&mut file).unwrap();
+    let mut visited = HashSet::new();
+    for guard in instance.board.walk(instance.guard) {
+        visited.insert(guard.pos);
     }
     return visited.len();
+}
+
+fn part2(path: &str) -> usize {
+    let mut file = File::open(&path).unwrap();
+    let instance = Instance::read(&mut file).unwrap();
+
+    let mut visited = HashSet::new();
+    for guard in instance.board.walk(instance.guard) {
+        visited.insert(guard.pos);
+    }
+
+    let mut count = 0;
+    for point in visited {
+        let mut board = instance.board.clone();
+        board.obstacles.insert(point);
+        let mut history = HashSet::new();
+        for guard in board.walk(instance.guard) {
+            if history.contains(&guard) {
+                count += 1;
+                break;
+            }
+            history.insert(guard);
+        }
+    }
+    return count;
 }
 
 fn main() {
@@ -202,9 +229,8 @@ fn main() {
             exit(1);
         }
         Some(path) => {
-            let mut file = File::open(&path).unwrap();
-            let mut state = State::read(&mut file).unwrap();
-            println!("Part 1: {}", part1(&mut state))
+            println!("Part 1: {}", part1(&path));
+            println!("Part 2: {}", part2(&path))
         }
     }
 }
